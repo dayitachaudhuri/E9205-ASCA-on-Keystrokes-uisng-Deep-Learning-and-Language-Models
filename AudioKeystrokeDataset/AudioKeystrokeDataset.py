@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import soundfile as sf
 from tqdm import tqdm 
 from torch.utils.data import Dataset
+import torch
 
 def extract_label(filepath):
     label = os.path.basename(filepath)
@@ -224,6 +225,9 @@ class AudioKeystrokeDataset(Dataset):
         # List to store (mel-spectrogram, label) tuples
         self.samples = []
         self._prepare_dataset()
+        
+        # Build a mapping from string labels to integer indices.
+        self.label2idx = {label: idx for idx, label in enumerate(sorted(self.get_labels()))}
 
     def _prepare_dataset(self):
         """
@@ -271,9 +275,11 @@ class AudioKeystrokeDataset(Dataset):
         mel_spec, label = self.samples[idx]
         # Normalize the spectrogram to the range [0, 1]
         mel_spec = (mel_spec - mel_spec.min()) / (mel_spec.max() - mel_spec.min() + 1e-6)
-        # Optionally convert label to integer if keys are represented as numbers
-        try:
-            label = int(label)
-        except ValueError:
-            pass
-        return mel_spec, label
+        # Map the string label to an integer using the label mapping
+        label_idx = self.label2idx[label]
+        # Convert the label to a torch tensor
+        label_tensor = torch.tensor(label_idx, dtype=torch.long)
+        return mel_spec, label_tensor
+    
+    def get_labels(self):
+        return list(set(label for _, label in self.samples))
