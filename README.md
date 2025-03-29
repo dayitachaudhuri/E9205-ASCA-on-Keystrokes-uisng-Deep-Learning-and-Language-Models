@@ -15,7 +15,7 @@ The approach involves:
 1. **Keystroke Classification:** Classifying individual keystrokes using a convolutional or recurrent neural network.
 2. **Sequence Refinement:** Employing a language model (potentially transformer-based) to improve sequence prediction and correct classification errors.
 
-We use datasets from **Kaggle** and the **Typing Behavior Dataset** to train and evaluate our models, addressing practical security concerns and exploring the limits of acoustic side channel attacks.
+We use Open Source datasets to train and evaluate our models, addressing practical security concerns and exploring the limits of acoustic side channel attacks.
 
 ---
 
@@ -31,8 +31,8 @@ The increasing vulnerability of keyboard inputs to **acoustic side channel attac
 
 ### Key Inspirations:
 
-- **"A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards"** demonstrated that a deep learning model (CoatNet) achieved 95% accuracy for smartphone-based keystroke recording and 93% via Zoom.
-- **"PassGPT: Password Modeling and (Guided) Generation with Large Language Models"** showed that large language models (LLMs) can significantly improve password guessing, highlighting their potential in sequence prediction tasks.
+- **[&#34;A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards&#34;](https://ieeexplore.ieee.org/document/10190721)** demonstrated that a deep learning model (CoatNet) achieved 95% accuracy for smartphone-based keystroke recording and 93% via Zoom.
+- **[&#34;PassGPT: Password Modeling and (Guided) Generation with Large Language Models&#34;](https://arxiv.org/abs/2306.01545)** showed that large language models (LLMs) can significantly improve password guessing, highlighting their potential in sequence prediction tasks.
 
 ---
 
@@ -40,11 +40,11 @@ The increasing vulnerability of keyboard inputs to **acoustic side channel attac
 
 ### 📑 Key Papers:
 
-1. **A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards (2023):**
+1. **[A Practical Deep Learning-Based Acoustic Side Channel Attack on Keyboards (2023):](https://ieeexplore.ieee.org/document/10190721)**
 
    - Demonstrates the use of a deep learning model (CoatNet) to classify laptop keystrokes recorded by a smartphone.
    - Achieved 95% accuracy with smartphone recordings and 93% via Zoom.
-2. **PassGPT: Password Modeling and (Guided) Generation with Large Language Models (2023):**
+2. **[PassGPT: Password Modeling and (Guided) Generation with Large Language Models (2023):](https://arxiv.org/abs/2306.01545)**
 
    - Explores the application of LLMs in password modeling and guided password generation.
    - Inspires our approach to integrating LLMs for sequence prediction.
@@ -63,6 +63,8 @@ The increasing vulnerability of keyboard inputs to **acoustic side channel attac
 3. **Keystroke-Datasets (GitHub):**
 
    - Provides additional `.wav` files for specific keys, offering variety in acoustic patterns.
+
+   **4. [MKA Dataset](https://data.mendeley.com/datasets/bpt2hvf8n3/4)**
 
 ---
 
