@@ -5,10 +5,7 @@ import librosa.display
 import matplotlib.pyplot as plt
 import soundfile as sf
 from tqdm import tqdm 
-
 from torch.utils.data import Dataset
-
-DATASET_PATH = "../data/Zoom/Raw Data"
 
 def extract_label(filepath):
     label = os.path.basename(filepath)
