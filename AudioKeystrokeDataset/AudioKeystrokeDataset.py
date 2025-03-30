@@ -8,8 +8,12 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 import torch
 
-def extract_label(filepath):
-    label = os.path.basename(filepath)
+def extract_label(filepath, full_dataset=False):
+    if full_dataset:
+        label = os.path.basename(os.path.dirname(filepath))
+    else:
+        
+        label = os.path.basename(filepath)
     return label
 
 def load_wav_files(dataset_path):
@@ -199,7 +203,7 @@ def process_audio_file(file_path, energy_threshold, output_dir, segment_length=1
 class AudioKeystrokeDataset(Dataset):
     def __init__(self, dataset_path, energy_threshold=100, segment_length=14400,
                  sr=44100, n_fft=1024, hop_length=256, n_mels=64, spec_hop_length=500,
-                 target_keystrokes=35):
+                 target_keystrokes=35, full_dataset=False):
         """
         Parameters:
           dataset_path: Path to the dataset directory containing key .wav files.
@@ -221,6 +225,7 @@ class AudioKeystrokeDataset(Dataset):
         self.n_mels = n_mels
         self.spec_hop_length = spec_hop_length
         self.target_keystrokes = target_keystrokes
+        self.full_dataset = full_dataset
         
         # List to store (mel-spectrogram, label) tuples
         self.samples = []
@@ -243,7 +248,7 @@ class AudioKeystrokeDataset(Dataset):
                     
         # Process each file with tqdm for progress visualization.
         for file_path in tqdm(all_files, desc="Processing Audio Files"):
-            label = extract_label(file_path)
+            label = extract_label(file_path, self.full_dataset)
             try:
                 audio, sr = librosa.load(file_path, sr=self.sr)
             except Exception as e:
@@ -267,6 +272,7 @@ class AudioKeystrokeDataset(Dataset):
                 )
                 mel_spec_aug = spec_augment(mel_spec)
                 self.samples.append((mel_spec_aug, label))
+
     
     def __len__(self):
         return len(self.samples)
