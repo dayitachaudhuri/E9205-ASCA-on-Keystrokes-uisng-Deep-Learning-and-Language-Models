@@ -1,9 +1,7 @@
 {
     "DATASET_PATH": {
         "all" : "data/All Dataset/Raw Data",
-        "zoom" : "data/Zoom/Raw Data",
         "mac" : "data/Mac/Raw Data",
-        "dell" : "data/Dell/Raw Data",
-        "hp" : "data/hp/Raw Data"
+        "others": "data/Others/Raw Data"
     }
   }

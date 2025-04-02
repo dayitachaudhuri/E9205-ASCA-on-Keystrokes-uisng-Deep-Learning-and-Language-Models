@@ -138,26 +138,34 @@ def generate_mel_spectrogram(segment, sr, n_mels=64, n_fft=1024, hop_length=225)
 
 def spec_augment(spectrogram, time_mask_percentage=0.1, freq_mask_percentage=0.1):
     """
-    Augment the Mel spectrogram.
+    Augment the Mel spectrogram by applying time and frequency masking separately.
+
     Parameters:
-    - spectrogram: The Mel spectrogram to augment.
+    - spectrogram: The Mel spectrogram to augment (NumPy array).
     - time_mask_percentage: Percentage of the time dimension to mask.
     - freq_mask_percentage: Percentage of the frequency dimension to mask.
+
     Returns:
     - augmented_spec: The augmented Mel spectrogram.
     """
     augmented_spec = spectrogram.copy()
     n_mels, n_time = augmented_spec.shape
-    # Calculate the lengths of the masks
+
+    # Calculate mask lengths
     time_mask_length = max(1, int(n_time * time_mask_percentage))
     freq_mask_length = max(1, int(n_mels * freq_mask_percentage))
-    # Randomly select the starting points for the masks
-    time_start = np.random.randint(0, n_time - time_mask_length + 1)
-    freq_start = np.random.randint(0, n_mels - freq_mask_length + 1)
-    # Calculate the mean value of the spectrogram to use as the mask value
+
+    # Mask Value (mean of spectrogram)
     mask_value = np.mean(augmented_spec)
-    # Apply the time mask and frequency mask
-    augmented_spec[freq_start:freq_start + freq_mask_length, time_start:time_start + time_mask_length] = mask_value
+
+    # Apply Time Mask: Select a random start point and mask time steps across all frequencies
+    time_start = np.random.randint(0, n_time - time_mask_length + 1)
+    augmented_spec[:, time_start:time_start + time_mask_length] = mask_value  # Mask entire frequency range
+
+    # Apply Frequency Mask: Select a random start point and mask frequency bins across all time steps
+    freq_start = np.random.randint(0, n_mels - freq_mask_length + 1)
+    augmented_spec[freq_start:freq_start + freq_mask_length, :] = mask_value  # Mask entire time range
+
     return augmented_spec
 
 def process_audio_file(file_path, energy_threshold, output_dir, segment_length=14400, sr=44100):
