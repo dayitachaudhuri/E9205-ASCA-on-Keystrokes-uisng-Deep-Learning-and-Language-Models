@@ -191,23 +191,23 @@ pip install -r requirements.txt
 
 ### 🎧 Keystroke Classification
 
-```bash
-python src/train_classifier.py --data_dir data/ --epochs 50 --batch_size 32
+Step 1 - Segment Keystrokes
+
+```
+python save_individual_keystrokes.py
 ```
 
-### 🔡 Language Model Integration
+Step 2 - Generate sentence Typing Data
 
-```bash
-python src/language_model.py --input_dir results/ --model_type transformer
+```
+python generate_sentence_sounds.py
 ```
 
-### 📊 Evaluation
+Step 4 - Train and Infer from Model
 
-```bash
-python src/evaluate.py --model_dir models/ --metrics accuracy cer
 ```
-
----
+Use the training_test.ipynb notebook
+```
 
 ## 📜 License
 
