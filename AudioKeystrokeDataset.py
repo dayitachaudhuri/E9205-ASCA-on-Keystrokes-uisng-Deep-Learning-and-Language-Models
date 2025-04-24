@@ -9,9 +9,18 @@ from torch.utils.data import Dataset
 import torch
 
 def extract_label_and_device(filepath, full_dataset=False):
-    filepath = filepath.replace("\\", "/") 
-    if full_dataset:
-        # Example: data/All Dataset/Raw Data/<label>/<label><device>.wav
+    filepath = filepath.replace("\\", "/")
+    parts = filepath.split("/")
+
+    if "ProcessedWithImage" in parts:
+        label = parts[-3].lower()
+        combined = parts[-2].lower()
+        if combined.startswith(label):
+            device = combined[len(label):]
+        else:
+            device = "unknown"
+        # Debug print
+    elif full_dataset:
         label = os.path.basename(os.path.dirname(filepath)).lower()
         filename = os.path.splitext(os.path.basename(filepath))[0].lower()
         if filename.startswith(label):
@@ -19,43 +28,11 @@ def extract_label_and_device(filepath, full_dataset=False):
         else:
             device = "unknown"
     else:
-        # Example: data/<device>/Raw Data/<label>.wav
         parts = filepath.split("/")
         device = parts[-3].lower()
         label = os.path.splitext(os.path.basename(filepath))[0].lower()
-    return label, device
 
-def isolate_keystrokes(audio, sr, segment_length=14400, n_fft=1024, hop_length=256, min_separation=43):
-    stft = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-    energy = np.sum(np.abs(stft), axis=0)
-    threshold = np.percentile(energy, 95) 
-    min_separation = int(0.1 * sr / hop_length) 
-    keystroke_frames = np.where(energy > threshold)[0]
-    if len(keystroke_frames) == 0:
-        return threshold, [], []
-    groups = []
-    current_group = [keystroke_frames[0]]
-    for i in range(1, len(keystroke_frames)):
-        if keystroke_frames[i] - keystroke_frames[i - 1] > min_separation:
-            groups.append(current_group)
-            current_group = []
-        current_group.append(keystroke_frames[i])
-    if current_group:
-        groups.append(current_group)
-    segments = []
-    segment_starts = []
-    for group in groups:
-        center_frame = int(np.mean(group))
-        start = max((center_frame * hop_length) - segment_length // 2, 0)
-        end = start + segment_length
-        if end > len(audio):
-            start = max(0, len(audio) - segment_length)
-            end = len(audio)
-        segment = audio[start:end]
-        if len(segment) == segment_length: 
-            segments.append(segment)
-            segment_starts.append(start / sr) 
-    return threshold, segments, segment_starts
+    return label, device
 
 def visualize_keystrokes(audio, sr, segment_starts, title="Detected Keystrokes"):
     plt.figure(figsize=(12, 3))
@@ -168,29 +145,24 @@ class AudioKeystrokeDataset(Dataset):
                 print(f"Error loading {file_path}: {e}")
                 continue
             
-            # Compute optimal threshold and isolate keystrokes from the file.
-            optimal_threshold, segments, segment_starts = isolate_keystrokes(audio, sr)
-            # visualize_keystrokes(audio, sr, segment_starts, title=f"Detected {len(segments)} Keystrokes in {label}")
-            
             # Process each keystroke segment.
-            for segment in segments:
-                # Apply random time shift for data augmentation.
-                augmented_segment = time_shift(segment)
-                # Apply other data augmentations.
-                if np.random.rand() < 0.5:
-                    augmented_segment = add_noise(augmented_segment)
-                if np.random.rand() < 0.5:
-                    augmented_segment = random_gain(augmented_segment)
-                if np.random.rand() < 0.2:
-                    augmented_segment = pitch_shift(augmented_segment, sr, n_steps=np.random.uniform(-1, 1))
-                # Generate mel-spectrogram and apply SpecAugment.
-                mel_spec = generate_mel_spectrogram(
-                    augmented_segment, sr, n_mels=self.n_mels,
-                    n_fft=self.n_fft, hop_length=self.spec_hop_length
-                )
-                mel_spec_aug = spec_augment(mel_spec)
-                # Add it to your sample
-                self.samples.append((mel_spec_aug, label, device_id))
+            # Apply random time shift for data augmentation.
+            augmented_segment = time_shift(audio)
+            # Apply other data augmentations.
+            if np.random.rand() < 0.5:
+                augmented_segment = add_noise(augmented_segment)
+            if np.random.rand() < 0.5:
+                augmented_segment = random_gain(augmented_segment)
+            if np.random.rand() < 0.2:
+                augmented_segment = pitch_shift(augmented_segment, sr, n_steps=np.random.uniform(-1, 1))
+            # Generate mel-spectrogram and apply SpecAugment.
+            mel_spec = generate_mel_spectrogram(
+                augmented_segment, sr, n_mels=self.n_mels,
+                n_fft=self.n_fft, hop_length=self.spec_hop_length
+            )
+            mel_spec_aug = spec_augment(mel_spec)
+            # Add it to your sample
+            self.samples.append((mel_spec_aug, label, device_id))
     
     def __len__(self):
         return len(self.samples)
