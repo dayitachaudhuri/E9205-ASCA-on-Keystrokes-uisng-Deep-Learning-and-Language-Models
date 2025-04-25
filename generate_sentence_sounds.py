@@ -3,6 +3,8 @@ import random
 import librosa
 import soundfile as sf
 from tqdm import tqdm
+import numpy as np
+import json
 
 DEVICES = ['mac', 'lenovo', 'msi', 'messnger', 'zoom']
 CHAR_MAPPINGS = {
@@ -33,9 +35,10 @@ CHAR_MAPPINGS = {
     '[': ['bracketopen([)'],
     ']': ['bracketclose(])'],
     ' ': ['space'],
+    '"' : ['Lshift', "apostrophe(')"],
 }
 
-def load_keystroke_paths(base_dir='data/Processed'):
+def load_keystroke_paths(base_dir='data/ProcessedWithImage'):
     keystrokes = {}
     for key in os.listdir(base_dir):
         key_path = os.path.join(base_dir, key)
@@ -53,51 +56,75 @@ def load_keystroke_paths(base_dir='data/Processed'):
                     break
     return keystrokes
 
-def sentence_to_keystrokes(sentence, keystrokes):
+# Update the function definition of sentence_to_keystrokes
+def sentence_to_keystrokes(sentence, keystrokes, device=None):
     sentence = sentence.strip()
     audio_sequence = []
-    device = random.choice(DEVICES)
+    if device is None:
+        device = random.choice(DEVICES)
     key_sequence = []
     for char in sentence:
-        if char.isupper():
-            key_sequence.append('caps')  
-            key_sequence.append(char.lower())
-            key_sequence.append('caps')
-            continue
-        elif char in CHAR_MAPPINGS:
-            key_sequence.extend(CHAR_MAPPINGS[char])
+        print(f"Character: '{char}'", end=' -> ')
+        if char in CHAR_MAPPINGS:
+            mapped_keys = CHAR_MAPPINGS[char]
+            print(f"Mapped to: {mapped_keys}")
+            key_sequence.extend(mapped_keys)
         else:
-            key_sequence.append(char)
+            lower_char = char.lower()
+            print(f"Mapped to: {lower_char}")
+            key_sequence.append(lower_char)
+
     for key in key_sequence:
-        if key not in keystrokes or device not in keystrokes[key]:
-            print(f"Skipping key '{key}' for device '{device}'")
+        if key not in keystrokes:
+            print(f"Key '{key}' not found in keystrokes data.")
             continue
+        if device not in keystrokes[key]:
+            print(f"Device '{device}' not found for key '{key}'.")
+            continue
+
         file = random.choice(keystrokes[key][device])
+        print(f"Using file for key '{key}': {file}")
         y, sr = librosa.load(file, sr=None)
         audio_sequence.append(y)
+
+        silence = np.zeros(int(0.2 * sr)) 
+        audio_sequence.append(silence)
+
     if not audio_sequence:
         return None, None
-    return sum(audio_sequence), sr
+
+    return np.concatenate(audio_sequence), sr
 
 def process_sentences(sentences_file, output_dir='data/sentences'):
     os.makedirs(output_dir, exist_ok=True)
     keystrokes = load_keystroke_paths()
+    sentence2device = {}
+
     with open(sentences_file, 'r') as f:
         lines = f.readlines()
+
     for line in tqdm(lines):
         try:
-            sid, sentence = line.strip().split('.', 1)
+            sid, sentence = line.strip().split('. ', 1)
             sentence = sentence.strip()
             output_path = os.path.join(output_dir, f"{sid}.wav")
-            audio, sr = sentence_to_keystrokes(sentence, keystrokes)
+
+            device = random.choice(DEVICES)
+            audio, sr = sentence_to_keystrokes(sentence, keystrokes, device=device)
+
             if audio is not None:
                 sf.write(output_path, audio, sr)
+                sentence2device[sid] = device
             else:
                 print(f"Skipping {sid}: No audio generated")
         except Exception as e:
             print(f"Error with line '{line}': {e}")
 
+    # Save mapping of sentence ID to device
+    with open(os.path.join(output_dir, 'sentence2device.json'), 'w') as f:
+        json.dump(sentence2device, f, indent=2)
+
 if __name__ == "__main__":
-    sentences_file = 'data/1000_sentences.txt'
+    sentences_file = 'data/5_sentences.txt'
     output_dir = 'data/sentences'
     process_sentences(sentences_file, output_dir)
