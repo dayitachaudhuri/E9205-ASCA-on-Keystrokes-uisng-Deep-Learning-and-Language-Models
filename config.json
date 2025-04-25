@@ -2,6 +2,13 @@
     "DATASET_PATH": {
         "all" : "data/All Dataset/Raw Data",
         "mac" : "data/Mac/Raw Data",
-        "others": "data/Others/Raw Data"
+        "others": "data/Others/Raw Data",
+        "lenovo": "data/Lenovo/Raw Data"
+    },
+    "OUTPUT_PATHS": {
+        "all" : "data/Processed"
+    },
+    "MODELS": {
+        "llama3-8B": "meta-llama/Meta-Llama-3.1-8B-Instruct"
     }
   }

@@ -63,6 +63,9 @@ def sentence_to_keystrokes(sentence, keystrokes, device=None):
     if device is None:
         device = random.choice(DEVICES)
     key_sequence = []
+
+    print(f"\nProcessing sentence: \"{sentence}\" on device: {device}")
+
     for char in sentence:
         print(f"Character: '{char}'", end=' -> ')
         if char in CHAR_MAPPINGS:
@@ -85,9 +88,10 @@ def sentence_to_keystrokes(sentence, keystrokes, device=None):
         file = random.choice(keystrokes[key][device])
         print(f"Using file for key '{key}': {file}")
         y, sr = librosa.load(file, sr=None)
+        y = librosa.util.normalize(y) 
         audio_sequence.append(y)
 
-        silence = np.zeros(int(0.2 * sr)) 
+        silence = np.zeros(int(0.5 * sr)) 
         audio_sequence.append(silence)
 
     if not audio_sequence:
@@ -121,7 +125,7 @@ def process_sentences(sentences_file, output_dir='data/sentences'):
             print(f"Error with line '{line}': {e}")
 
     # Save mapping of sentence ID to device
-    with open(os.path.join(output_dir, 'sentence2device.json'), 'w') as f:
+    with open('data/sentence2device.json', 'w') as f:
         json.dump(sentence2device, f, indent=2)
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+import numpy as np
+import librosa
+import scipy.signal
 from glob import glob
 import json
 import os
@@ -8,6 +11,37 @@ import librosa.display
 import matplotlib.pyplot as plt
 import soundfile as sf
 from tqdm import tqdm 
+
+def separate_overlapping_keystrokes(audio, sr, segment_length=14400, win_length=512, hop_length=128, pre_max=5, post_max=5, threshold_db=-30):
+    # Compute short-time energy
+    stft = librosa.stft(audio, n_fft=1024, hop_length=hop_length, win_length=win_length)
+    magnitude = np.abs(stft)
+    energy_db = librosa.amplitude_to_db(magnitude, ref=np.max)
+    energy = np.mean(energy_db, axis=0)
+
+    # Detect peaks in energy
+    peaks, _ = scipy.signal.find_peaks(energy, height=threshold_db, distance=3)
+    
+    # Optional: Rank peaks by prominence to simulate "ranking model"
+    prominences = scipy.signal.peak_prominences(energy, peaks)[0]
+    ranked_peaks = [peak for _, peak in sorted(zip(prominences, peaks), reverse=True)]
+
+    segments = []
+    segment_starts = []
+
+    for peak in ranked_peaks:
+        start_sample = max((peak * hop_length) - segment_length // 2, 0)
+        end_sample = start_sample + segment_length
+        if end_sample > len(audio):
+            start_sample = max(0, len(audio) - segment_length)
+            end_sample = len(audio)
+        segment = audio[start_sample:end_sample]
+        if len(segment) == segment_length:
+            segments.append(segment)
+            segment_starts.append(start_sample / sr)
+
+    return segments, segment_starts
+
 
 def extract_label_and_device(filepath, full_dataset=False):
     filepath = filepath.replace("\\", "/")  # Normalize path
@@ -26,45 +60,6 @@ def extract_label_and_device(filepath, full_dataset=False):
         label = os.path.splitext(os.path.basename(filepath))[0].lower()
     return label, device
 
-def isolate_keystrokes(audio, sr, segment_length=14400, n_fft=1024, hop_length=256, min_separation=43):
-    stft = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-    energy = np.sum(np.abs(stft), axis=0)
-    threshold = np.percentile(energy, 95) 
-    min_separation = int(0.1 * sr / hop_length) 
-    keystroke_frames = np.where(energy > threshold)[0]
-    
-    if len(keystroke_frames) == 0:
-        return threshold, [], []
-    
-    groups = []
-    current_group = [keystroke_frames[0]]
-    
-    for i in range(1, len(keystroke_frames)):
-        if keystroke_frames[i] - keystroke_frames[i - 1] > min_separation:
-            groups.append(current_group)
-            current_group = []
-        current_group.append(keystroke_frames[i])
-        
-    if current_group:
-        groups.append(current_group)
-        
-    segments = []
-    segment_starts = []
-    
-    for group in groups:
-        center_frame = int(np.mean(group))
-        start = max((center_frame * hop_length) - segment_length // 2, 0)
-        end = start + segment_length
-        if end > len(audio):
-            start = max(0, len(audio) - segment_length)
-            end = len(audio)
-        segment = audio[start:end]
-        if len(segment) == segment_length: 
-            segments.append(segment)
-            segment_starts.append(start / sr) 
-            
-    return threshold, segments, segment_starts
-
 def visualize_keystrokes(audio, sr, segment_starts, title="Detected Keystrokes"):
     plt.figure(figsize=(12, 3))
     librosa.display.waveshow(audio, sr=sr)
@@ -79,7 +74,7 @@ def process_audio_file(file_path, output_dir, segment_length=14400, sr=44100):
     # Load the audio file
     audio, sr = librosa.load(file_path, sr=sr)
     # Isolate keystrokes
-    threshold, segments, segment_starts = isolate_keystrokes(audio, sr, segment_length=segment_length)
+    threshold, segments, segment_starts = separate_overlapping_keystrokes(audio, sr, segment_length=segment_length)
     # Visualize and save the waveform with keystroke markers
     label, _ = extract_label_and_device(file_path)
     plt.figure(figsize=(12, 3))
@@ -96,7 +91,7 @@ def process_audio_file(file_path, output_dir, segment_length=14400, sr=44100):
 with open('config.json', 'r') as f:
     config = json.load(f)
 input_root = config['DATASET_PATH']['all']      
-output_root = 'data/ProcessedWithImage'  
+output_root = 'data/ProcessedOverlappingKeystrokes'  
 print(f"[INFO] Loaded paths from config.")
 
 # Traverse key directories

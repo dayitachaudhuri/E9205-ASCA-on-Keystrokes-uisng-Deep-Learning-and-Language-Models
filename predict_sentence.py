@@ -1,11 +1,11 @@
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+
 
 import torch
 import librosa
 import json
-from CoatNet import CoAtNet
-from AudioKeystrokeDataset import isolate_keystrokes, generate_mel_spectrogram
+import numpy as np
+from CoatNet.CoatNet import CoAtNet
+from AudioKeystrokeDataset.AudioKeystrokeDataset import isolate_keystrokes, generate_mel_spectrogram
 
 # === CONFIGURATION ===
 WAV_PATH     = "data/sentences/1.wav"
